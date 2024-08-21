@@ -4,11 +4,15 @@ set -euo pipefail
 
 rm -rf built
 cp -r assets built
+cp -r built/shared-data built/linux-cli/
+cp -r built/shared-data built/web/
+
+mkdir -p ~/.heartcore
+cp -r built/shared-data ~/.heartcore/
 
 touch built/web/packages.js
 
-declare -a packages=("workspace")
-#declare -a packages=("formats" "renderer" "storage" "workspace")
+declare -a packages=("hc_formats" "hc_network" "hc_renderer" "hc_storage" "hc_workspace" "hc_utilities")
 
 for i in "${packages[@]}"
 do
@@ -23,11 +27,11 @@ do
 
 done
 
-pushd workspace || exit 1
+pushd hc_workspace || exit 1
 cargo build
 popd || exit 1
 # NOTE this is debug build for now
-cp workspace/target/debug/workspace built/linux-cli/
+cp hc_workspace/target/debug/workspace built/linux-cli/
 
 echo 'async function run() {' >> built/web/packages.js
 
@@ -38,6 +42,6 @@ do
 
 done
 
-echo 'workspace.start();' >> built/web/packages.js
+echo 'hc_workspace.start();' >> built/web/packages.js
 echo '}' >> built/web/packages.js
 echo 'run();' >> built/web/packages.js

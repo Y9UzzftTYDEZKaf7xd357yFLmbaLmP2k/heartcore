@@ -1,5 +1,5 @@
 [package]
-name = "renderer"
+name = "hc_renderer"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,5 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-utilities = { path = "../utilities" }
-formats = { path = "../formats" }
+hc_utilities = { path = "../hc_utilities" }
 wasm-bindgen = "0.2"

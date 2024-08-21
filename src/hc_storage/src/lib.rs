@@ -1,26 +1,7 @@
+use std::fs;
+use hc_utilities::*;
 use wasm_bindgen::prelude::*;
-
-pub trait IntoVecU8 {
-    fn into_vec_u8(self) -> Vec<u8>;
-}
-
-impl IntoVecU8 for String {
-    fn into_vec_u8(self) -> Vec<u8> {
-        self.into_bytes()
-    }
-}
-
-impl IntoVecU8 for Vec<u8> {
-    fn into_vec_u8(self) -> Vec<u8> {
-        self
-    }
-}
-
-impl<'a> IntoVecU8 for &'a str {
-    fn into_vec_u8(self) -> Vec<u8> {
-        self.to_string().into_bytes()
-    }
-}
+use web_sys::Window;
 
 /*pub fn put(k: Vec<u8>, v: Vec<u8>) {
     println!(
@@ -30,24 +11,28 @@ impl<'a> IntoVecU8 for &'a str {
     );
 }
 */
-pub fn put<K: IntoVecU8, V: IntoVecU8>(key: K, value: V) {
-    let k = key.into_vec_u8();
-    let v = value.into_vec_u8();
+pub fn put(key: Vec<u8>, value: Vec<u8>) {
     println!(
-        "Storage put with k {}, v {}",
-        String::from_utf8_lossy(&k),
-        String::from_utf8_lossy(&v)
+        "Storage put with key {}, value {}",
+        String::from_utf8_lossy(&key),
+        String::from_utf8_lossy(&value)
     );
     // let mut store = STORE.lock().unwrap();
     // store.insert(key.into_vec_u8(), value.into_vec_u8());
 }
 
-pub fn get<K: IntoVecU8>(key: K) -> Option<Vec<u8>> {
-    let k = key.into_vec_u8();
-    println!("Storage get with k {}", String::from_utf8_lossy(&k));
+pub fn get(key: Vec<u8>) -> Option<Vec<u8>> {
+    println!("Storage get with key {}", String::from_utf8_lossy(&key));
     // let store = STORE.lock().unwrap();
     // store.get(&key.into_vec_u8()).cloned()
-    return Some(k);
+    return Some(key);
+}
+
+pub fn get_asset(key: &str) -> Option<Vec<u8>> {
+    #[cfg(target_family = "wasm")]
+    return get_asset_wasm(key);
+    #[cfg(not(target_family = "wasm"))]
+    return get_asset_native(key);
 }
 
 /*pub fn get(k: Vec<u8>) -> Vec<u8> {
@@ -74,7 +59,6 @@ where
     return String::new();
 }*/
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,17 +69,29 @@ mod tests {
         assert_eq!(Some("value".to_string().into_bytes()), get("key".to_string()));
     }*/
     fn can_store_and_get_value() {
-        put("key".to_string(), "value".to_string());
-        assert_eq!("key", String::from_utf8_lossy(&get("key").unwrap()));
+        put("key".as_bytes().to_owned(), "value".as_bytes().to_owned());
+        assert_eq!("key", String::from_utf8_lossy(&get(strtovec("key")).unwrap()));
     }
 }
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn alert(s: &str);
+    pub fn print_js(s: &str);
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn get_asset_native(string: &str) -> Option<Vec<u8>> {
+    return Some(fs::read(format!("~/.heartcore/shared-data/{}", string)).expect(
+        format!(
+            "Should have been able to read the file ~/.heartcore/shared-data/{}",
+            string
+        )
+        .as_str(),
+    ));
 }
 
 #[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+#[cfg(target_family = "wasm")]
+pub fn get_asset_wasm(string: &str) -> Option<Vec<u8>> {
+    return Some(Window::fetch_with_str(format!("./shared-data/{}", string)));
 }

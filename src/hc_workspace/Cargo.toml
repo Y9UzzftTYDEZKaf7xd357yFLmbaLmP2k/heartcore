@@ -1,5 +1,5 @@
 [package]
-name = "workspace"
+name = "hc_workspace"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,7 +11,7 @@ name = "workspace"
 path = "src/bin.rs"
 
 [dependencies]
-renderer = { path = "../renderer" }
-storage = { path = "../storage" }
+hc_formats = { path = "../hc_formats" }
+hc_renderer = { path = "../hc_renderer" }
+hc_storage = { path = "../hc_storage" }
 wasm-bindgen = "0.2"
-getrandom = { version = "0.2", features = ["js"] }
