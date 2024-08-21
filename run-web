@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./build || exit 1
+
+pushd built/web
+
+xdg-open http://localhost:9000/
+
+python3 -m http.server 9000

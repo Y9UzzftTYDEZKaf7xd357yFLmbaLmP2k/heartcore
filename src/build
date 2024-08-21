@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+rm -rf built
+cp -r assets built
+
+touch built/web/packages.js
+
+declare -a packages=("workspace")
+#declare -a packages=("formats" "renderer" "storage" "workspace")
+
+for i in "${packages[@]}"
+do
+
+    pushd "$i" || exit 1
+    
+    # cargo test -- --test-threads 3
+    wasm-pack build --target web
+    cp -r pkg ../built/web/lib/"$i"
+    echo "import * as $i from \"./lib/$i/$i.js\";" >> ../built/web/packages.js
+    popd || exit 1
+
+done
+
+pushd workspace || exit 1
+cargo build
+popd || exit 1
+# NOTE this is debug build for now
+cp workspace/target/debug/workspace built/linux-cli/
+
+echo 'async function run() {' >> built/web/packages.js
+
+for i in "${packages[@]}"
+do
+
+    echo "await $i.default();" >> built/web/packages.js
+
+done
+
+echo 'workspace.start();' >> built/web/packages.js
+echo '}' >> built/web/packages.js
+echo 'run();' >> built/web/packages.js

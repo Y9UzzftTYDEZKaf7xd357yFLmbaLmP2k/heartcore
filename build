@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# Needs wasm-pack installed first: cargo install wasm-pack
+
+set -euo pipefail
+
+rm -rf ./built
+
+pushd src || exit 1
+./build
+popd || exit 1
+
+git archive HEAD -o src/built/web/src.zip
+cp src/built/web/src.zip src/built/linux-cli/src.zip
+
+mv src/built ./built
+

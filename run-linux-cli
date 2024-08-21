@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./build || exit 1
+
+pushd built/linux-cli || exit 1
+
+./workspace
