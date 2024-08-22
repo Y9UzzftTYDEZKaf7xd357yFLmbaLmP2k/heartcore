@@ -1,16 +1,23 @@
+use cfg_if::cfg_if;
 use wasm_bindgen::prelude::*;
 
 pub fn start(document: Vec<u8>) {
     print_string(document);
 }
 
+// FIXME: Rendering a document as in, getting frames or string output, and actually doing the I/O should be separate libraries
+
 pub fn print_string(document: Vec<u8>) {
     let string = String::from_utf8_lossy(&document).to_string();
     let string = string.as_str();
-    #[cfg(target_family = "wasm")]
-    print_wasm(string);
-    #[cfg(not(target_family = "wasm"))]
-    println!("{}", string);
+
+    cfg_if! {
+        if #[cfg(target_family = "wasm")] {
+            print_wasm(string);
+        } else {
+            println!("{}", string);
+        }
+    }
 }
 
 #[cfg(test)]

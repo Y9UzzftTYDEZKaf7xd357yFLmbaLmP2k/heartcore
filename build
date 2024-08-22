@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Needs wasm-pack installed first: cargo install wasm-pack
+# Also requires libssl-dev Debian package
 
 set -euo pipefail
 
