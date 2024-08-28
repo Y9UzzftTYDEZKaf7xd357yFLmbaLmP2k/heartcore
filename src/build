@@ -2,6 +2,18 @@
 
 set -euo pipefail
 
+wasm=false
+if [[ "$1" == "--wasm" ]]; then
+    wasm=true
+    shift
+fi
+
+linuxcli=false
+if [[ "$1" == "--linux-cli" ]]; then
+    linuxcli=true
+    shift
+fi
+
 rm -rf built
 cp -r assets built
 cp -r built/shared-data built/linux-cli/
@@ -12,7 +24,7 @@ cp -r built/shared-data ~/.heartcore/
 
 touch built/web/packages.js
 
-declare -a packages=("hc_formats" "hc_network" "hc_renderer" "hc_storage" "hc_workspace" "hc_utilities")
+declare -a packages=("hc_formats" "hc_io" "hc_network" "hc_renderer" "hc_storage" "hc_workspace" "hc_utilities")
 
 for i in "${packages[@]}"
 do
@@ -20,23 +32,23 @@ do
     pushd "$i" || exit 1
     
     # cargo test -- --test-threads 3
-    wasm-pack build --target web
+    [[ "$wasm" == true ]] && wasm-pack build --target web
     cp -r pkg ../built/web/lib/"$i"
     echo "import * as $i from \"./lib/$i/$i.js\";" >> ../built/web/packages.js
+    
+    [[ "$linuxcli" == true ]] && cargo build
+    
     popd || exit 1
 
 done
-
-pushd hc_workspace || exit 1
-cargo build
-popd || exit 1
-# NOTE this is debug build for now
-cp hc_workspace/target/debug/workspace built/linux-cli/
 
 echo 'async function run() {' >> built/web/packages.js
 
 for i in "${packages[@]}"
 do
+
+    # NOTE this is debug build for now
+    [[ -f "$i/target/debug/$i" ]] && cp "$i/target/debug/$i" built/linux-cli/
 
     echo "await $i.default();" >> built/web/packages.js
 

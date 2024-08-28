@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-./build || exit 1
+./build --linux-cli || exit 1
 
 pushd built/linux-cli || exit 1
 
-./workspace
+./hc_workspace

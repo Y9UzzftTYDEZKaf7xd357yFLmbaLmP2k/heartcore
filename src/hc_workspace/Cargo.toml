@@ -7,14 +7,16 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [[bin]]
-name = "workspace"
+name = "hc_workspace"
 path = "src/bin.rs"
 
 [dependencies]
 hc_formats = { path = "../hc_formats" }
+hc_io = { path = "../hc_io" }
 hc_network = { path = "../hc_network" }
 hc_renderer = { path = "../hc_renderer" }
 hc_storage = { path = "../hc_storage" }
 hc_utilities = { path = "../hc_utilities" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1.7"
+ipc-channel = "0.18"

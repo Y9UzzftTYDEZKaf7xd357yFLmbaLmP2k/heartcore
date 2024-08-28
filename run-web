@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-./build || exit 1
+./build --wasm || exit 1
 
 pushd built/web
 
