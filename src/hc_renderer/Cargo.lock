@@ -97,6 +97,7 @@ name = "hc_utilities"
 version = "0.1.0"
 dependencies = [
  "cfg-if",
+ "ipc-channel",
  "wasm-bindgen",
 ]
 
