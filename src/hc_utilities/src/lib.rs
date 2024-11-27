@@ -1,9 +1,17 @@
 use cfg_if::cfg_if;
-use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
+use core::{error, panic};
+cfg_if! {
+    if #[cfg(not(target_family = "wasm"))] {
+use nix::sys::stat;
+use nix::unistd;
+use std::io::BufRead;
+use std::path::Path;
+use std::process::{self, Command, Stdio};
+    }
+}
 use std::collections::HashMap;
 use std::env;
-use std::process::{self, Command, Stdio};
-use wasm_bindgen::prelude::*;
+use std::env::temp_dir;
 
 pub fn strtovec(s: &str) -> Vec<u8> {
     return s.as_bytes().to_owned();
@@ -77,12 +85,6 @@ pub fn start_process(
 }
 
 pub fn send_message(channel_name: Vec<u8>, message: Vec<u8>) {
-    let (server, server_name) = IpcOneShotServer::new().unwrap();
-    let tx: IpcSender<Vec<u8>> =
-        IpcSender::connect(String::from_utf8(channel_name).unwrap()).unwrap();
-    tx.send(message.clone()).unwrap();
-    let (_, data): (_, Vec<u8>) = server.accept().unwrap();
-    assert_eq!(data, message);
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
             // TODO
@@ -92,6 +94,12 @@ pub fn send_message(channel_name: Vec<u8>, message: Vec<u8>) {
     }
 }
 
+pub fn get_fifo_for_channel(channel_name: &str) -> String {
+    // FIXME: This is probably insecure, if the fifo is deleted it could be replaced with a malicious one
+    let fifo_path = temp_dir().as_path().join(channel_name);
+    return fifo_path.to_str().unwrap().to_string();
+}
+
 // Copied and modified from https://github.com/servo/ipc-channel/blob/862b0e2b29e042ed36a988ba40aadfa59628d016/src/test.rs#L119
 // With the terms (used under the MIT license):
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -99,6 +107,10 @@ pub fn send_message(channel_name: Vec<u8>, message: Vec<u8>) {
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+cfg_if! {
+    if #[cfg(target_family = "wasm")] {
+    // unused
+} else {
 pub fn spawn_server(server_name: &str, channel_name: &str) -> process::Child {
     if !in_array(
         strtovec(server_name),
@@ -115,11 +127,53 @@ pub fn spawn_server(server_name: &str, channel_name: &str) -> process::Child {
     path.pop();
     path.push(server_name);
 
+    let fifo_path = get_fifo_for_channel(channel_name);
+    let fifo_path_clone = fifo_path.clone();
+    let fifo_path_obj = Path::new(fifo_path_clone.as_str());
+
+    // if fifo exists, remove it
+    if Path::exists(fifo_path_obj) {
+        std::fs::remove_file(fifo_path_obj).unwrap();
+    }
+
+    print!("Creating fifo at: {:?}", fifo_path);
+    unistd::mkfifo(
+        fifo_path.as_str(),
+        stat::Mode::S_IRUSR | stat::Mode::S_IWUSR | stat::Mode::S_IROTH,
+    )
+    .unwrap();
+
     Command::new(path.clone())
         .arg(channel_name)
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .spawn()
         .expect(format!("failed to execute server process at {}", path.display()).as_str())
+}
+}
+}
+
+pub fn listen_for_message() {
+    cfg_if! {
+        if #[cfg(target_family = "wasm")] {
+        // TODO
+    } else {
+// get channel name from first cli argument
+    let channel_name = std::env::args().nth(1).unwrap();
+    let fifo_path = get_fifo_for_channel(channel_name.as_str());
+    println!("Listening on: {:?}", fifo_path);
+    // listen for message from the parent process
+
+    // open fifo and read until first nul byte
+    let fifo = std::fs::OpenOptions::new()
+        .read(true)
+        .open(fifo_path)
+        .unwrap();
+    let mut reader = std::io::BufReader::new(fifo);
+    let mut message = Vec::new();
+    reader.read_until(0, &mut message).unwrap();
+    println!("Listening2 on: {:?}", channel_name);
+    }
+}
 }

@@ -9,7 +9,7 @@ if [[ "$1" == "--wasm" ]]; then
 fi
 
 linuxcli=false
-if [[ "$1" == "--linux-cli" ]]; then
+if [[ "${1-}" == "--linux-cli" ]]; then
     linuxcli=true
     shift
 fi
@@ -19,8 +19,8 @@ cp -r assets built
 cp -r built/shared-data built/linux-cli/
 cp -r built/shared-data built/web/
 
-mkdir -p ~/.heartcore
-cp -r built/shared-data ~/.heartcore/
+mkdir -p ~/.heartcollective
+cp -r built/shared-data ~/.heartcollective/
 
 touch built/web/packages.js
 
@@ -33,7 +33,7 @@ do
     
     # cargo test -- --test-threads 3
     [[ "$wasm" == true ]] && wasm-pack build --target web
-    cp -r pkg ../built/web/lib/"$i"
+    [[ "$wasm" == true ]] && cp -r pkg ../built/web/lib/"$i"
     echo "import * as $i from \"./lib/$i/$i.js\";" >> ../built/web/packages.js
     
     [[ "$linuxcli" == true ]] && cargo build

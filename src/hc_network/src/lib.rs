@@ -16,7 +16,7 @@ pub fn get_asset(key: &str) -> Option<Vec<u8>> {
         if #[cfg(target_family = "wasm")] {
             return get_url(format!("./shared-data/{}", key).as_str());
         } else {
-            let local_path = format!("{}/.heartcore/shared-data/{}", dirs::home_dir().expect("Could not get home directory").display(), key);
+            let local_path = format!("{}/.heartcollective/shared-data/{}", dirs::home_dir().expect("Could not get home directory").display(), key);
 
             return get_local_file(local_path.as_str());
         }

@@ -15,8 +15,9 @@ pub fn start() {
     let process_manager = start_process_manager();
     let renderer_manager = start_process(process_manager, "hc_renderer");
     let renderer_pid_and_channel = renderer_manager.get(&(renderer_manager.len() as u32 - 1)).unwrap().get(&strtovec("hc_renderer")).unwrap();
-    let renderer_channel_name = renderer_pid_and_channel.get(&strtovec("0"));
-    println!("{:?}", String::from_utf8(renderer_channel_name.clone().unwrap()).unwrap());
+    let renderer_channel_name = renderer_pid_and_channel.keys().next();
+    println!("{:?}", String::from_utf8(renderer_channel_name.clone().unwrap().to_vec()).unwrap());
+    send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
 
     let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
     let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
