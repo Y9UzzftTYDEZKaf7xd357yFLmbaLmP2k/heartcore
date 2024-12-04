@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
 use wasm_bindgen::prelude::*;
+use hc_utilities::*;
 
 #[wasm_bindgen]
 pub fn print_string(document: Vec<u8>) {
@@ -8,7 +9,7 @@ pub fn print_string(document: Vec<u8>) {
 
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
-            print_wasm(string);
+            print_js(string);
         } else {
             println!("{}", string);
         }
@@ -24,15 +25,4 @@ mod tests {
         // put("key".to_string(), "value".to_string());
         // assert_eq!("key", String::from_utf8_lossy(&get("key").unwrap()));
     }
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub fn print_js(s: &str);
-}
-
-#[wasm_bindgen]
-#[cfg(target_family = "wasm")]
-pub fn print_wasm(string: &str) {
-    print_js(&format!("{}", string));
 }

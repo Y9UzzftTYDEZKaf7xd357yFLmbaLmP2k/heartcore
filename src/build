@@ -24,7 +24,8 @@ cp -r built/shared-data ~/.heartcollective/
 
 touch built/web/packages.js
 
-declare -a packages=("hc_formats" "hc_io" "hc_network" "hc_renderer" "hc_storage" "hc_workspace" "hc_utilities")
+#declare -a packages=("hc_formats" "hc_io" "hc_network" "hc_renderer" "hc_storage" "hc_workspace" "hc_utilities")
+declare -a packages=("hc_workspace")
 
 for i in "${packages[@]}"
 do

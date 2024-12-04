@@ -19,4 +19,5 @@ hc_storage = { path = "../hc_storage" }
 hc_utilities = { path = "../hc_utilities" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1.7"
-ipc-channel = "0.18"
+# argon2 = "0.5.3"
+# ipc-channel = "0.18"

@@ -2,7 +2,7 @@ extern crate console_error_panic_hook;
 use hc_formats;
 use hc_io;
 use hc_network;
-use hc_renderer;
+// use hc_renderer;
 use hc_storage;
 use hc_utilities::*;
 use std::collections::HashMap;
@@ -20,7 +20,9 @@ pub fn start() {
     send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
 
     let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
-    let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
+    let doc_str = vectostr(doc);
+    print_js(format!("Document: {}", doc_str).as_str());
+    // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
     // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
 }
 

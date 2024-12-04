@@ -12,9 +12,14 @@ use std::process::{self, Command, Stdio};
 use std::collections::HashMap;
 use std::env;
 use std::env::temp_dir;
+use wasm_bindgen::prelude::*;
 
 pub fn strtovec(s: &str) -> Vec<u8> {
     return s.as_bytes().to_owned();
+}
+
+pub fn vectostr(v: Vec<u8>) -> String {
+    return String::from_utf8_lossy(&v.clone()).to_string();
 }
 
 // edited from https://stackoverflow.com/a/59401721
@@ -156,24 +161,68 @@ pub fn spawn_server(server_name: &str, channel_name: &str) -> process::Child {
 
 pub fn listen_for_message() {
     cfg_if! {
-        if #[cfg(target_family = "wasm")] {
-        // TODO
-    } else {
-// get channel name from first cli argument
-    let channel_name = std::env::args().nth(1).unwrap();
-    let fifo_path = get_fifo_for_channel(channel_name.as_str());
-    println!("Listening on: {:?}", fifo_path);
-    // listen for message from the parent process
+            if #[cfg(target_family = "wasm")] {
+            // TODO
+        } else {
+    // get channel name from first cli argument
+        let channel_name = std::env::args().nth(1).unwrap();
+        let fifo_path = get_fifo_for_channel(channel_name.as_str());
+        println!("Listening on: {:?}", fifo_path);
+        // listen for message from the parent process
 
-    // open fifo and read until first nul byte
-    let fifo = std::fs::OpenOptions::new()
-        .read(true)
-        .open(fifo_path)
-        .unwrap();
-    let mut reader = std::io::BufReader::new(fifo);
-    let mut message = Vec::new();
-    reader.read_until(0, &mut message).unwrap();
-    println!("Listening2 on: {:?}", channel_name);
+        // open fifo and read until first nul byte
+        let fifo = std::fs::OpenOptions::new()
+            .read(true)
+            .open(fifo_path)
+            .unwrap();
+        let mut reader = std::io::BufReader::new(fifo);
+        let mut message = Vec::new();
+        reader.read_until(0, &mut message).unwrap();
+        println!("Listening2 on: {:?}", channel_name);
+        }
     }
 }
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn print_js(s: &str);
+}
+
+#[wasm_bindgen]
+#[cfg(target_family = "wasm")]
+pub fn print_js_wasm(s: &str) {
+    print_js(s);
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn get_base_url() -> String;
+}
+
+#[wasm_bindgen]
+#[cfg(target_family = "wasm")]
+pub fn get_base_url_wasm() -> String {
+    return get_base_url();
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn start_url_request(s: &str) -> String;
+}
+
+#[wasm_bindgen]
+#[cfg(target_family = "wasm")]
+pub fn start_url_request_wasm(s: &str) -> String {
+    return start_url_request(s);
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn finish_url_request(s: &str) -> String;
+}
+
+#[wasm_bindgen]
+#[cfg(target_family = "wasm")]
+pub fn finish_url_request_wasm(s: &str) -> String {
+    return finish_url_request(s);
 }

@@ -5,7 +5,6 @@ struct Document {
     data: Vec<u8>,
 }
 
-#[wasm_bindgen]
 pub fn start(document: Vec<u8>) {
     Document   {
         data: document,

@@ -1,10 +1,8 @@
 use cfg_if::cfg_if;
-use futures::executor;
 use hc_utilities::*;
 use std::fs;
-use futures::future::Future;
 use wasm_bindgen::prelude::*;
-use reqwest;
+use serde_json;
 
 pub fn get_asset(key: &str) -> Option<Vec<u8>> {
     if key.contains("/./") || key.contains("/../") || key.starts_with("./") || key.starts_with("../") {
@@ -65,32 +63,14 @@ fn get_local_file(path: &str) -> Option<Vec<u8>> {
 #[wasm_bindgen]
 #[cfg(target_family = "wasm")]
 pub fn sync_get_url_wasm(string: &str) -> Option<Vec<u8>> {
-    return executor::block_on(get_url_wasm(string));
-}
-
-#[cfg(target_family = "wasm")]
-pub async fn get_url_wasm(string: &str) -> Option<Vec<u8>> {
-    let body = reqwest::get(string).await;
-    if body.is_err() {
-        print_js(body.err().unwrap().to_string().as_str());
-        return None;
-    }
-    let bytes = body.ok()?.bytes().await;
-
-    if bytes.is_err() {
-        return None;
-    }
-
-    return Some(bytes.ok()?.to_vec());
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub fn print_js(s: &str);
-}
-
-#[wasm_bindgen]
-#[cfg(target_family = "wasm")]
-pub fn print_wasm2(string: &str) {
-    print_js(&format!("{}", string));
+    let index = start_url_request(string);
+    // poll return value of finish_url_request() until it's not equal to 0
+    let mut result = "0".to_string();
+    // while result == "0" {
+        result = finish_url_request(index.as_str());
+        print_js(format!("Result: {}", result).as_str());
+    // };
+    // json_decode result
+    let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+    return json["data"].as_str().map(|s| strtovec(s));
 }

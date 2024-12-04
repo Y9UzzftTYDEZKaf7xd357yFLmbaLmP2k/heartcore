@@ -9,6 +9,7 @@
     body {
       margin: 0;
     }
+
     #textFrame {
       font-family: monospace;
       font-size: 2rem;
@@ -17,10 +18,69 @@
     }
   </style>
 
+  <script id="rustWorker" type="javascript/worker">
+    // see https://stackoverflow.com/questions/5408406/web-workers-without-a-separate-javascript-file
+    self.onmessage = function(e) {
+      if (event.data.action === "fetch") {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", event.data.url, false); // synchronous request
+        xhr.send(null);
+        self.postMessage({status: xhr.status, body: xhr.responseText});
+      }
+    };
+  </script>
+
+  <script id="syncRequestWorker" type="javascript/worker">
+    // see https://stackoverflow.com/questions/5408406/web-workers-without-a-separate-javascript-file
+    self.onmessage = function(e) {
+      if (event.data.action === "fetch") {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", event.data.url, false); // synchronous request
+        xhr.send(null);
+        self.postMessage({status: xhr.status, body: xhr.responseText});
+      }
+    };
+  </script>
   <script>
-    window.print_js = function(string) {
+    window.print_js = function (string) {
       document.getElementById("textFrame").textContent = string;
     };
+    window.get_base_url = function (string) {
+      let url = window.location.href;
+      let base_url = url.substring(0, url.lastIndexOf('/'));
+      return base_url;
+    };
+    window.get_request_state = function () {
+      return worker.readyState;
+    };
+    window.requestStates = [];
+    window.start_url_request = function (url) {
+      var blob = new Blob([
+        document.querySelector('#syncRequestWorker').textContent
+      ], { type: "text/javascript" })
+
+      var worker = new Worker(window.URL.createObjectURL(blob));
+      let index = window.requestStates.push("0") - 1;
+      worker.postMessage({ action: "fetch", url: url });
+      worker.onmessage = (event) => {
+        window.requestStates[index] = event.data;
+      };
+
+      return index.toString();
+    }
+    window.finish_url_request = function (index) {
+      let state = window.requestStates[parseInt(index)];
+      if (state !== 0) {
+        // For large files, this will need some other approach, like downloading
+        // chunks of the file and then letting the Rust code get them individually
+        // and put them together
+        window.requestStates[index] = null;
+
+        return JSON.stringify(state);
+      }
+
+      return "0";
+    }
   </script>
 
   <script type="module" src="./packages.js">
