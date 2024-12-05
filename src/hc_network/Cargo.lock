@@ -408,6 +408,7 @@ dependencies = [
  "cfg-if",
  "duct",
  "nix",
+ "serde_json",
  "tempfile",
  "wasm-bindgen",
 ]

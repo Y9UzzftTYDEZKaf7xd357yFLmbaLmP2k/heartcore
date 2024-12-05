@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+html, body {
+    @apply m-0 h-full flex;
+}
+
+.card {
+    @apply bg-white shadow-md rounded-lg p-4;
+}

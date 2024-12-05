@@ -9,6 +9,8 @@ use std::path::Path;
 use std::process::{self, Command, Stdio};
     }
 }
+use serde_json;
+use serde_json::json;
 use std::collections::HashMap;
 use std::env;
 use std::env::temp_dir;
@@ -183,6 +185,7 @@ pub fn listen_for_message() {
     }
 }
 
+/*
 #[wasm_bindgen]
 extern "C" {
     pub fn print_js(s: &str);
@@ -225,4 +228,36 @@ extern "C" {
 #[cfg(target_family = "wasm")]
 pub fn finish_url_request_wasm(s: &str) -> String {
     return finish_url_request(s);
+}
+*/
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn start_method_call(method: &str, args: &str) -> String;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn finish_method_call(index: &str) -> String;
+}
+
+pub fn call_wasm(method: &str, args: String) -> String {
+    let index = start_method_call(method, args.as_str());
+    // poll return value of finish_url_request() until it's not equal to 0
+    let mut result = "0".to_string();
+    while result == "0" {
+        result = finish_method_call(index.as_str());
+    };
+
+    return result;
+    // json_decode result
+    // let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+    // return json["data"].as_str().map(|s| strtovec(s));
+}
+
+pub fn print_js(string: &str) {
+    // serialize the method arguments to a string with serde
+    let args = json!([string]);
+
+    call_wasm("print_js", serde_json::to_string(&args).unwrap());
 }

@@ -29,3 +29,4 @@ mod tests {
         assert_eq!("key", String::from_utf8_lossy(&get(strtovec("key")).unwrap()));
     }
 }
+

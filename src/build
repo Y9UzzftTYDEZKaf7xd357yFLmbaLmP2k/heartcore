@@ -58,3 +58,10 @@ done
 echo 'hc_workspace.start();' >> built/web/packages.js
 echo '}' >> built/web/packages.js
 echo 'run();' >> built/web/packages.js
+
+cp built/web/vendor/coi-serviceworker/coi-serviceworker.js built/web/
+
+mv built/web/app.css built/web/app.in.css
+tailwindcss -i built/web/app.in.css -o built/web/app.css
+
+cat built/web/packages.js built/web/rust-worker.in.js > built/web/rust-worker.js

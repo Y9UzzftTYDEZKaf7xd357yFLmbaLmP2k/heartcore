@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# Needs inotify-tools package
+
+set -euxo pipefail
+
+./run-web &
+
+disown -a
+
+# https://superuser.com/questions/181517/how-to-execute-a-command-whenever-a-file-changes
+cd src
+echo "$(pwd)"
+inotifywait -re close_write,moved_to,create -m . |
+#inotifywait -m . |
+while read -r directory events filename; do
+    echo "Event: $filename $directory $events"
+    if [[ "$filename" =~ ./built/.* ]] || [[ "$filename" == ".keep" ]]; then
+        echo "Skipping $filename"
+        continue
+    fi
+    # https://stackoverflow.com/questions/28195821/how-can-i-interrupt-or-debounce-an-inotifywait-loop
+    jobs -p | xargs kill || true
+    (
+        pushd .. || exit 1
+        ./build --wasm &
+        popd || exit 1
+    ) &
+    echo "Skipping $(timeout 3 cat | wc -l) further changes"
+done

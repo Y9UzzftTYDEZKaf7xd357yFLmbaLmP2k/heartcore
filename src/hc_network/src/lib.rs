@@ -22,13 +22,14 @@ pub fn get_asset(key: &str) -> Option<Vec<u8>> {
 }
 
 pub fn get_url(key: &str) -> Option<Vec<u8>> {
-    cfg_if! {
+   /* cfg_if! {
         if #[cfg(target_family = "wasm")] {
             return sync_get_url_wasm(key);
         } else {
             return Some(strtovec("TODO UNIMPLEMENTED"));
         }
-    }
+    }*/
+    return None;
     /*
     #[cfg(not(target_family = "wasm"))]
     return get_url_native(key); */
@@ -63,7 +64,7 @@ fn get_local_file(path: &str) -> Option<Vec<u8>> {
 #[wasm_bindgen]
 #[cfg(target_family = "wasm")]
 pub fn sync_get_url_wasm(string: &str) -> Option<Vec<u8>> {
-    let index = start_url_request(string);
+/*    let index = start_url_request(string);
     // poll return value of finish_url_request() until it's not equal to 0
     let mut result = "0".to_string();
     // while result == "0" {
@@ -72,5 +73,6 @@ pub fn sync_get_url_wasm(string: &str) -> Option<Vec<u8>> {
     // };
     // json_decode result
     let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    return json["data"].as_str().map(|s| strtovec(s));
+    return json["data"].as_str().map(|s| strtovec(s));*/
+    return None;
 }

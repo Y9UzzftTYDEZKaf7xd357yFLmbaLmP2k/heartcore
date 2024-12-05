@@ -2,23 +2,16 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <title></title>
+    <meta charset="utf-8">
+    <title>💙COLLECTIVE</title>
 
-  <style>
-    body {
-      margin: 0;
-    }
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    #textFrame {
-      font-family: monospace;
-      font-size: 2rem;
-      padding: 1rem;
-      margin: 0;
-    }
-  </style>
+    <script src="coi-serviceworker.js"></script>
+    
+    </script>
 
-  <script id="rustWorker" type="javascript/worker">
+    <script id="syncRequestWorker" type="javascript/worker">
     // see https://stackoverflow.com/questions/5408406/web-workers-without-a-separate-javascript-file
     self.onmessage = function(e) {
       if (event.data.action === "fetch") {
@@ -29,66 +22,71 @@
       }
     };
   </script>
+    <script>
+        let rustWorker = new Worker('rust-worker.js', { type: "module" });
+        rustWorker.onmessage = function(event) { 
+            let message = event.data;
+            if (message.type === "call") {
+                let allowedMethods = ["print_js", "get_base_url", "start_url_request", "finish_url_request"];
+                if (allowedMethods.includes(message.method)) {
+                    let result = window[message.method](...JSON.parse(message.args));
+                    rustWorker.postMessage({ type: "result", result: result, index: message.index });
+                } else {
+                    console.error("Method not allowed: " + message.method);
+                }
+            }
+        }
+        window.print_js = function (string) {
+            document.getElementById("textFrame").textContent = string;
+        };
+        window.get_base_url = function (string) {
+            let url = window.location.href;
+            let base_url = url.substring(0, url.lastIndexOf('/'));
+            return base_url;
+        };
+        window.fetch_url = async function (url) {
+            await fetch(url).then(response => response.text());
+        };
+        window.requestStates = [];
+        window.start_url_request = function (url) {
+            var blob = new Blob([
+                document.querySelector('#syncRequestWorker').textContent
+            ], { type: "text/javascript" })
 
-  <script id="syncRequestWorker" type="javascript/worker">
-    // see https://stackoverflow.com/questions/5408406/web-workers-without-a-separate-javascript-file
-    self.onmessage = function(e) {
-      if (event.data.action === "fetch") {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", event.data.url, false); // synchronous request
-        xhr.send(null);
-        self.postMessage({status: xhr.status, body: xhr.responseText});
-      }
-    };
-  </script>
-  <script>
-    window.print_js = function (string) {
-      document.getElementById("textFrame").textContent = string;
-    };
-    window.get_base_url = function (string) {
-      let url = window.location.href;
-      let base_url = url.substring(0, url.lastIndexOf('/'));
-      return base_url;
-    };
-    window.get_request_state = function () {
-      return worker.readyState;
-    };
-    window.requestStates = [];
-    window.start_url_request = function (url) {
-      var blob = new Blob([
-        document.querySelector('#syncRequestWorker').textContent
-      ], { type: "text/javascript" })
 
-      var worker = new Worker(window.URL.createObjectURL(blob));
-      let index = window.requestStates.push("0") - 1;
-      worker.postMessage({ action: "fetch", url: url });
-      worker.onmessage = (event) => {
-        window.requestStates[index] = event.data;
-      };
+            var worker = new Worker(window.URL.createObjectURL(blob));
+            let index = window.requestStates.push(null) - 1;
+            worker.postMessage({ action: "fetch", url: url });
+            worker.onmessage = (event) => {
+                window.requestStates[index] = event.data;
+            };
 
-      return index.toString();
-    }
-    window.finish_url_request = function (index) {
-      let state = window.requestStates[parseInt(index)];
-      if (state !== 0) {
-        // For large files, this will need some other approach, like downloading
-        // chunks of the file and then letting the Rust code get them individually
-        // and put them together
-        window.requestStates[index] = null;
+            return index.toString();
+        }
+        window.finish_url_request = function (index) {
+            let state = window.requestStates[parseInt(index)];
+            if (state !== "0") {
+                // For large files, this will need some other approach, like downloading
+                // chunks of the file and then letting the Rust code get them individually
+                // and put them together
+                window.requestStates[index] = null;
 
-        return JSON.stringify(state);
-      }
+                return state;
+            }
 
-      return "0";
-    }
-  </script>
+            return "0";
+        }
+        
+    </script>
 
-  <script type="module" src="./packages.js">
-  </script>
+    <link rel="stylesheet" href="./app.css">
 </head>
 
-<body>
-  <pre id="textFrame"></pre>
+<body class="w-full h-full p-4 bg-rose-50">
+    <div class="flex flex-col w-full gap-y-4">
+        <pre id="textFrame" class="font-mono w-full grow card"></pre>
+        <pre id="textLog" class="font-mono w-full h-1/5 card"></pre>
+    </div>
 </body>
 
 </html>
