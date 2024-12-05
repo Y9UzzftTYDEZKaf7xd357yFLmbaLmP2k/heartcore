@@ -24,6 +24,12 @@ pub fn vectostr(v: Vec<u8>) -> String {
     return String::from_utf8_lossy(&v.clone()).to_string();
 }
 
+macro_rules! json_encode {
+    ($x:expr) => {
+        serde_json::to_string(&json!($x)).unwrap()
+    };
+}
+
 // edited from https://stackoverflow.com/a/59401721
 pub fn find_first_matching_key_for_value(
     map: HashMap<Vec<u8>, Vec<u8>>,
@@ -209,11 +215,6 @@ pub fn get_base_url_wasm() -> String {
 }
 
 #[wasm_bindgen]
-extern "C" {
-    pub fn start_url_request(s: &str) -> String;
-}
-
-#[wasm_bindgen]
 #[cfg(target_family = "wasm")]
 pub fn start_url_request_wasm(s: &str) -> String {
     return start_url_request(s);
@@ -243,8 +244,10 @@ extern "C" {
 
 pub fn call_wasm(method: &str, args: String) -> String {
     let index = start_method_call(method, args.as_str());
+    return index;
     // poll return value of finish_url_request() until it's not equal to 0
     let mut result = "0".to_string();
+
     while result == "0" {
         result = finish_method_call(index.as_str());
     };
@@ -256,8 +259,12 @@ pub fn call_wasm(method: &str, args: String) -> String {
 }
 
 pub fn print_js(string: &str) {
-    // serialize the method arguments to a string with serde
-    let args = json!([string]);
-
-    call_wasm("print_js", serde_json::to_string(&args).unwrap());
+    call_wasm("print_js", json_encode!([string]));
 }
+
+pub fn get_url_js(url: &str) -> String {
+    let result = call_wasm("get_url", json_encode!([url]));
+    print_js(&result);
+    return result;
+}
+

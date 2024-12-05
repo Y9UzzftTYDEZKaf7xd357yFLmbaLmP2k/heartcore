@@ -8,34 +8,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <script src="coi-serviceworker.js"></script>
-    
-    </script>
 
-    <script id="syncRequestWorker" type="javascript/worker">
-    // see https://stackoverflow.com/questions/5408406/web-workers-without-a-separate-javascript-file
-    self.onmessage = function(e) {
-      if (event.data.action === "fetch") {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", event.data.url, false); // synchronous request
-        xhr.send(null);
-        self.postMessage({status: xhr.status, body: xhr.responseText});
-      }
-    };
-  </script>
     <script>
+        // see https://stackoverflow.com/questions/67089372/await-async-execution-in-sync-function-in-webworker-javascript and https://stackoverflow.com/questions/10590213/synchronously-wait-for-message-in-web-worker
         let rustWorker = new Worker('rust-worker.js', { type: "module" });
-        rustWorker.onmessage = function(event) { 
-            let message = event.data;
+
+        rustWorker.addEventListener("message", async (event) => {
+            console.log("event", event);
+            message = event.data;
             if (message.type === "call") {
-                let allowedMethods = ["print_js", "get_base_url", "start_url_request", "finish_url_request"];
-                if (allowedMethods.includes(message.method)) {
-                    let result = window[message.method](...JSON.parse(message.args));
-                    rustWorker.postMessage({ type: "result", result: result, index: message.index });
-                } else {
-                    console.error("Method not allowed: " + message.method);
-                }
+                let args = JSON.parse(message.args);
+                console.log("Args from Rust: ", message);
+                let result = await window[message.method](...args);
+                Atomics.notify(new Int32Array(message.sab), 0);
             }
-        }
+        });
+        /*        rustWorker.onmessage = async function(event) { 
+                    let message = event.data;
+                    console.log("Message from Rust: ", message);
+                    if (message.type === "call") {
+                        let allowedMethods = ["print_js", "get_base_url", "get_url"];
+                        if (allowedMethods.includes(message.method)) {
+                            let args = JSON.parse(message.args);
+                            console.log("Args from Rust: ", event);
+                            let result = await window[message.method](...args);
+                            console.log("Result from JS: ", result);
+                            Atomics.notify(new Int32Array(message.sab), 0);
+                            console.log("Notified Rust: ", message.sab);
+                            rustWorker.postMessage({ type: "result", result: result, index: message.index, sab: message.response_sab });
+                            console.log("Posted message: ", message.response_sab);
+                        } else {
+                            console.error("Method not allowed: " + message.method);
+                        }
+                    } else if (message.type === "log") {
+                        console.log(message);
+                    }
+                }*/
         window.print_js = function (string) {
             document.getElementById("textFrame").textContent = string;
         };
@@ -44,39 +52,17 @@
             let base_url = url.substring(0, url.lastIndexOf('/'));
             return base_url;
         };
-        window.fetch_url = async function (url) {
-            await fetch(url).then(response => response.text());
+        window.get_url = async function (url) {
+            let response = await fetch(url);
+            return await response.text();
+            //             console.log("Response from URL: ", { type: "result", result: await response.text(), index: index });
+            let result = { type: "result", result: await response.text(), index: index };
+            console.log("Result from URL: ", result);
+            rustWorker.postMessage(result);
+            console.log("Message sent to Rust: ", result);
+            return;
+            rustWorker.postMessage({ type: "result", result: await response.text(), index: index });
         };
-        window.requestStates = [];
-        window.start_url_request = function (url) {
-            var blob = new Blob([
-                document.querySelector('#syncRequestWorker').textContent
-            ], { type: "text/javascript" })
-
-
-            var worker = new Worker(window.URL.createObjectURL(blob));
-            let index = window.requestStates.push(null) - 1;
-            worker.postMessage({ action: "fetch", url: url });
-            worker.onmessage = (event) => {
-                window.requestStates[index] = event.data;
-            };
-
-            return index.toString();
-        }
-        window.finish_url_request = function (index) {
-            let state = window.requestStates[parseInt(index)];
-            if (state !== "0") {
-                // For large files, this will need some other approach, like downloading
-                // chunks of the file and then letting the Rust code get them individually
-                // and put them together
-                window.requestStates[index] = null;
-
-                return state;
-            }
-
-            return "0";
-        }
-        
     </script>
 
     <link rel="stylesheet" href="./app.css">

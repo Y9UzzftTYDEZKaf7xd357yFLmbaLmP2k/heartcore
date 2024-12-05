@@ -20,8 +20,8 @@ pub fn start() {
     println!("{:?}", String::from_utf8(renderer_channel_name.clone().unwrap().to_vec()).unwrap());
     send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
 
-//    let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
-let doc = strtovec("a");
+    let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
+    // let doc = strtovec("0");
     let doc_str = vectostr(doc);
     print_js(format!("Document: {}", doc_str).as_str());
     // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
