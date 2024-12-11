@@ -8,11 +8,11 @@ self.methodResponseBuffers = [];
 
 self.start_method_call = function (method, args) {
 
-    const sab = new SharedArrayBuffer(4, { maxByteLength: 1 * 1000 * 1000 }); // 1mb max for now
-    self.postMessage({ type: 'call', method: method, args: args/*, index: index*/, sab: sab });
-    Atomics.wait(new Int32Array(sab), 0, 0);
+    // const sab = new SharedArrayBuffer(4, { maxByteLength: 1 * 1000 * 1000 }); // 1mb max for now
+    // self.postMessage({ type: 'call', method: method, args: args/*, index: index*/, sab: sab });
+    // Atomics.wait(new Int32Array(sab), 0, 0);
 
-    return "ok";
+    // return "ok";
 
     /*
     
@@ -36,7 +36,7 @@ self.start_method_call = function (method, args) {
 };
 
 self.finish_method_call = function (index) {
-    self.postMessage({ type: 'finish', index: index });
+    /*self.postMessage({ type: 'finish', index: index });
     let state = self.methodCallStates[parseInt(index)];
     if (state !== "0") {
         self.methodCallStates[index] = null;
@@ -47,14 +47,14 @@ self.finish_method_call = function (index) {
     let int32View = new Int32Array(sharedArrayBuffer);
     Atomics.wait(int32View, 0, 0, 1000);
 
-    return "0";
+    return "0";*/
 };
 
 self.onmessage = function (e) {
-    let message = e.data;
+ /*   let message = e.data;
     self.postMessage({ type: 'log', message: message });
     if (message.type === 'result') {
         self.methodCallResults[message.index] = message.result;
     }
-    Atomics.notify(new Int32Array(message.sab), 0);
+    Atomics.notify(new Int32Array(message.sab), 0);*/
 };

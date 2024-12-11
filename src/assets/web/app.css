@@ -7,3 +7,19 @@ html, body {
 .card {
     @apply bg-white shadow-md rounded-lg p-4;
 }
+
+.delay-show {
+    animation: 10s showWithDelay;
+    animation-fill-mode: forwards;
+    
+    visibility: hidden;
+}
+
+@keyframes showWithDelay {
+    99% {
+      visibility: hidden;
+    }
+    100% {
+      visibility: visible;
+    }
+  }
