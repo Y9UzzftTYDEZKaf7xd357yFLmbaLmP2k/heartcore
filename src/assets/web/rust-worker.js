@@ -1,6 +1,15 @@
 import * as hc_workspace from "./lib/hc_workspace/hc_workspace.js";
 import {readMessage, uuidv4} from "./vendor/sync-message/index.js";
+import {
+    RTCPeerConnection,
+    RTCSessionDescription,
+    RTCIceCandidate
+} from './vendor/worker-webrtc/worker.js';
 
+self.RTCPeerConnection = RTCPeerConnection;
+self.RTCSessionDescription = RTCSessionDescription;
+self.RTCIceCandidate = RTCIceCandidate;
+  
 async function run() {
     await hc_workspace.default();
     postMessage( { type: 'ready' } );
@@ -29,6 +38,9 @@ self.onmessage = function (e) {
         self.channel = message.channel;
     } else if (message.type === 'callFromJs') {
         let result = hc_workspace[message.method](...message.args);
+        if (result instanceof Promise) {
+            result = '';
+        }
         postMessage({ type: 'result', result: result });
     }
 };

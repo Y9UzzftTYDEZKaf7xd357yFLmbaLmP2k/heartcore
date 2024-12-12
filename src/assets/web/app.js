@@ -1,4 +1,8 @@
 import { makeChannel, writeMessage } from "./vendor/sync-message/index.js";
+import workerRTC from './vendor/worker-webrtc/window.js';
+
+const worker = new Worker('./vendor/worker-webrtc/worker.js');
+workerRTC(worker);
 
 let makeRustWorker = function () {
     let rustWorker = new Worker('rust-worker.js', { type: "module" });

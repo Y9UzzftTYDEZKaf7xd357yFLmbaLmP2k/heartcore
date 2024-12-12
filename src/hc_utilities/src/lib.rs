@@ -44,6 +44,23 @@ pub fn find_first_matching_key_for_value(
     });
 }
 
+pub fn log(document: Vec<u8>) {
+    let string = String::from_utf8_lossy(&document).to_string();
+    let string = string.as_str();
+
+    cfg_if! {
+        if #[cfg(target_family = "wasm")] {
+            log_js(string);
+        } else {
+            println!("{}", string);
+        }
+    }
+}
+
+pub fn log_string(document: String) {
+    log(strtovec(&document));
+}
+
 pub fn this_pid() -> Vec<u8> {
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
