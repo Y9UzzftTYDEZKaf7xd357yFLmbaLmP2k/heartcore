@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use hc_utilities::*;
 use uuid::Uuid;
+use ammonia;
+use wasm_bindgen::prelude::*;
+use std::iter;
 
 pub fn get_format_uuids<'a>() -> HashMap<Vec<u8>, Vec<u8>> {
     return HashMap::from([
@@ -68,6 +71,15 @@ pub fn wrap(document: Vec<u8>, filetype: Vec<u8>) -> Option<Vec<u8>> {
     uuid.clone()?.append(&mut document.clone());
 
     return uuid;
+}
+
+#[wasm_bindgen]
+pub fn sanitize_html(document: Vec<u8>) -> Vec<u8> {
+    let mut builder = ammonia::Builder::default();
+
+    builder.add_generic_attributes(iter::once("class").chain(iter::once("id")));
+
+    return builder.clean(&String::from_utf8_lossy(&document).to_string()).to_string().into_bytes();
 }
 
 #[cfg(test)]

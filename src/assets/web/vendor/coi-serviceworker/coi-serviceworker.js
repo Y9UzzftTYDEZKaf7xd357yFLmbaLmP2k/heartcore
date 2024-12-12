@@ -1,4 +1,6 @@
-/*! coi-serviceworker v0.1.7 - Guido Zuidhof and contributors, licensed under MIT */
+/*! coi-serviceworker v0.1.7 - Guido Zuidhof and contributors, licensed under MIT. Patched for HeartCollective */
+import {serviceWorkerFetchListener} from "./vendor/sync-message/index.js";
+
 let coepCredentialless = false;
 if (typeof window === 'undefined') {
     self.addEventListener("install", () => self.skipWaiting());
@@ -21,7 +23,14 @@ if (typeof window === 'undefined') {
         }
     });
 
+    const fetchListener = serviceWorkerFetchListener();
+
     self.addEventListener("fetch", function (event) {
+        if (fetchListener(event)) {
+            // This event has been handled by sync-message
+            return;
+        }
+
         const r = event.request;
         if (r.cache === "only-if-cached" && r.mode !== "same-origin") {
             return;
@@ -121,7 +130,7 @@ if (typeof window === 'undefined') {
             return;
         }
 
-        n.serviceWorker.register(window.document.currentScript.src).then(
+        n.serviceWorker.register(window.document.getElementById('serviceworker').src).then(
             (registration) => {
                 !coi.quiet && console.log("COOP/COEP Service Worker registered", registration.scope);
 

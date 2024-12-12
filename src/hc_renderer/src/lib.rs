@@ -5,11 +5,11 @@ struct Document {
     data: Vec<u8>,
 }
 
-/*pub fn start(document: Vec<u8>) {
+pub fn start(document: Vec<u8>) {
     Document   {
         data: document,
     };
-}*/
+}
 
 #[cfg(test)]
 mod tests {

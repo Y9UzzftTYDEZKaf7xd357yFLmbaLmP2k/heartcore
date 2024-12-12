@@ -1,6 +1,6 @@
 extern crate console_error_panic_hook;
 use hc_formats;
-use hc_io;
+use hc_io::*;
 use hc_network;
 // use hc_renderer;
 use hc_storage;
@@ -17,15 +17,17 @@ pub fn start() {
     let renderer_manager = start_process(process_manager, "hc_renderer");
     let renderer_pid_and_channel = renderer_manager.get(&(renderer_manager.len() as u32 - 1)).unwrap().get(&strtovec("hc_renderer")).unwrap();
     let renderer_channel_name = renderer_pid_and_channel.keys().next();
-    println!("{:?}", String::from_utf8(renderer_channel_name.clone().unwrap().to_vec()).unwrap());
     send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
+
+    hc_io::showView("console", "root");
+    log(renderer_channel_name.clone().unwrap().to_vec());
 
     let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
     // let doc = strtovec("0");
     let doc_str = vectostr(doc);
-    print_js(format!("Document: {}", doc_str).as_str());
+    print(strtovec(format!("Document: {}", doc_str).as_str()));
     // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
-    // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
+    // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));*/
 }
 
 #[cfg(test)]

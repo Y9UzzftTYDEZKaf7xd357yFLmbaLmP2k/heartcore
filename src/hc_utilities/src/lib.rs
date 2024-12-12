@@ -234,37 +234,25 @@ pub fn finish_url_request_wasm(s: &str) -> String {
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn start_method_call(method: &str, args: &str) -> String;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub fn finish_method_call(index: &str) -> String;
+    pub fn call_method(method: &str, args: &str) -> String;
 }
 
 pub fn call_wasm(method: &str, args: String) -> String {
-    let index = start_method_call(method, args.as_str());
-    return index;
-    // poll return value of finish_url_request() until it's not equal to 0
-    let mut result = "0".to_string();
-
-    while result == "0" {
-        result = finish_method_call(index.as_str());
-    };
-
-    return result;
-    // json_decode result
-    // let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    // return json["data"].as_str().map(|s| strtovec(s));
+    return call_method(method, args.as_str());
 }
 
 pub fn print_js(string: &str) {
     call_wasm("print_js", json_encode!([string]));
 }
 
-pub fn get_url_js(url: &str) -> String {
-    let result = call_wasm("get_url", json_encode!([url]));
-    print_js(&result);
-    return result;
+pub fn log_js(string: &str) {
+    call_wasm("log_js", json_encode!([string]));
 }
 
+pub fn get_path_js(url: &str) -> String {
+    return call_wasm("get_path", json_encode!([url]));
+}
+
+pub fn show_view_js(view: &str, parent: &str) {
+    call_wasm("showView", json_encode!([view, parent]));
+}

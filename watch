@@ -15,10 +15,11 @@ inotifywait -re close_write,moved_to,create -m . |
 #inotifywait -m . |
 while read -r directory events filename; do
     echo "Event: $filename $directory $events"
-    if [[ "$filename" =~ ./built/.* ]] || [[ "$filename" == ".keep" ]]; then
+    if [[ "$directory" =~ ./built/.* ]] || [[ "$filename" == ".keep" ]] || [[ "$directory" =~ .*/pkg/ ]]; then
         echo "Skipping $filename"
         continue
     fi
+    echo "Event accepted: $filename $directory $events"
     # https://stackoverflow.com/questions/28195821/how-can-i-interrupt-or-debounce-an-inotifywait-loop
     jobs -p | xargs kill || true
     (
@@ -26,5 +27,5 @@ while read -r directory events filename; do
         ./build --wasm &
         popd || exit 1
     ) &
-    echo "Skipping $(timeout 3 cat | wc -l) further changes"
+    echo "Skipping $(timeout 5 cat | wc -l) further changes"
 done

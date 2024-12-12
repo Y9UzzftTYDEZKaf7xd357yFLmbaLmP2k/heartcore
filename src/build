@@ -35,7 +35,7 @@ do
     # cargo test -- --test-threads 3
     [[ "$wasm" == true ]] && wasm-pack build --target web
     [[ "$wasm" == true ]] && cp -r pkg ../built/web/lib/"$i"
-    echo "import * as $i from \"./lib/$i/$i.js\";" >> ../built/web/packages.js
+    #echo "import * as $i from \"./lib/$i/$i.js\";" >> ../built/web/packages.js
     
     [[ "$linuxcli" == true ]] && cargo build
     
@@ -43,25 +43,27 @@ do
 
 done
 
-echo 'async function run() {' >> built/web/packages.js
+#echo 'import {readMessage, uuidv4} from "./vendor/sync-message/index.js";' >> built/web/packages.js
 
-for i in "${packages[@]}"
-do
+#echo 'async function run() {' >> built/web/packages.js
+
+#for i in "${packages[@]}"
+#do
 
     # NOTE this is debug build for now
-    [[ -f "$i/target/debug/$i" ]] && cp "$i/target/debug/$i" built/linux-cli/
+#    [[ -f "$i/target/debug/$i" ]] && cp "$i/target/debug/$i" built/linux-cli/
 
-    echo "await $i.default();" >> built/web/packages.js
+#    echo "await $i.default();" >> built/web/packages.js
 
-done
+#done
 
-echo 'hc_workspace.start();' >> built/web/packages.js
-echo '}' >> built/web/packages.js
-echo 'run();' >> built/web/packages.js
+#echo 'hc_workspace.start();' >> built/web/packages.js
+#echo '}' >> built/web/packages.js
+#echo 'run();' >> built/web/packages.js
 
 cp built/web/vendor/coi-serviceworker/coi-serviceworker.js built/web/
 
 mv built/web/app.css built/web/app.in.css
 tailwindcss -i built/web/app.in.css -o built/web/app.css
 
-cat built/web/packages.js built/web/rust-worker.in.js > built/web/rust-worker.js
+#cat built/web/packages.js built/web/rust-worker.in.js > built/web/rust-worker.js

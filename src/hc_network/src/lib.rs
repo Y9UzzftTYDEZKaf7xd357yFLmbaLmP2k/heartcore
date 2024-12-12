@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
 use hc_utilities::*;
+use core::panic;
 use std::fs;
 use wasm_bindgen::prelude::*;
 use serde_json;
@@ -13,7 +14,7 @@ pub fn get_asset(key: &str) -> Option<Vec<u8>> {
 
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
-            let url = get_url_js(format!("./shared-data/{}", key).as_str());
+            let url = get_path_js(format!("./shared-data/{}", key).as_str());
             let string = url.as_str();
             return Some(strtovec(string));
         } else {
