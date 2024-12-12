@@ -134,6 +134,8 @@ if (typeof window === 'undefined') {
             (registration) => {
                 !coi.quiet && console.log("COOP/COEP Service Worker registered", registration.scope);
 
+                window.serviceWorkerSucceeded = true;
+
                 registration.addEventListener("updatefound", () => {
                     !coi.quiet && console.log("Reloading page to make use of updated COOP/COEP Service Worker.");
                     window.sessionStorage.setItem("coiReloadedBySelf", "updatefound");
