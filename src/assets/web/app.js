@@ -16,10 +16,6 @@ let makeRustWorker = function () {
 }
 
 let makeRustListener = function (channel, whenReady, messageCallback) {
-    if (!window.serviceWorkerSucceeded) {
-        console.log('Service worker failed to start');
-        return false;
-    }
     return async function (event) {
         let message = event.data;
         // console.log("Received message from Rust", message, whenReady);
@@ -43,6 +39,7 @@ let makeRustListener = function (channel, whenReady, messageCallback) {
     };
 };
 
+
 async function callRust(method, args) {
     let promise = new Promise((resolve, reject) => {
         let [rustWorker, channel] = makeRustWorker();
@@ -60,14 +57,26 @@ async function callRust(method, args) {
     return result.result;
 }
 
-async function startApp(html) {
+window.startApp = async function(html) {
     window.appStarted = true;
     await callRust('start', []);
 }
 
-startApp();
-
-
+let checkAppStarted = () => {
+    if (window.appStarted) {
+        return;
+    }
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+            if (registration.active.scriptURL.includes("coi-serviceworker.js")) {
+               startApp();
+               clearInterval(interval);
+            }
+        });
+    });
+};
+checkAppStarted();
+let interval = setInterval(checkAppStarted, 250);
 
 
 

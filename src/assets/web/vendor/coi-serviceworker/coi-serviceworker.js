@@ -3,6 +3,7 @@ import {serviceWorkerFetchListener} from "./vendor/sync-message/index.js";
 
 let coepCredentialless = false;
 if (typeof window === 'undefined') {
+    try {
     self.addEventListener("install", () => self.skipWaiting());
     self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -66,6 +67,10 @@ if (typeof window === 'undefined') {
                 .catch((e) => console.error(e))
         );
     });
+    console.log('load ok');
+    } catch (exception) {
+        console.trace(exception);
+    }
 
 } else {
     (() => {
@@ -133,8 +138,6 @@ if (typeof window === 'undefined') {
         n.serviceWorker.register(window.document.getElementById('serviceworker').src).then(
             (registration) => {
                 !coi.quiet && console.log("COOP/COEP Service Worker registered", registration.scope);
-
-                window.serviceWorkerSucceeded = true;
 
                 registration.addEventListener("updatefound", () => {
                     !coi.quiet && console.log("Reloading page to make use of updated COOP/COEP Service Worker.");

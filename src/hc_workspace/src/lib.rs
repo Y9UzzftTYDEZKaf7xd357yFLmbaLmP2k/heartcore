@@ -29,7 +29,7 @@ pub async fn start() {
     print(strtovec(format!("Document: {}", doc_str).as_str()));
     // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
     // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));*/
-    data_channel_test().await;
+    // data_channel_test().await;
 }
 
 pub fn show_view(view: &str, parent: &str) {
