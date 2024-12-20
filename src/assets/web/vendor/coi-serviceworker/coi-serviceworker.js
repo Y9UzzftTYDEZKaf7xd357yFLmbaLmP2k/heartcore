@@ -1,73 +1,74 @@
 /*! coi-serviceworker v0.1.7 - Guido Zuidhof and contributors, licensed under MIT. Patched for HeartCollective */
-import {serviceWorkerFetchListener} from "./vendor/sync-message/index.js";
+import { serviceWorkerFetchListener, isServiceWorkerRequest } from "./vendor/sync-message/index.js";
 
 let coepCredentialless = false;
+
 if (typeof window === 'undefined') {
     try {
-    self.addEventListener("install", () => self.skipWaiting());
-    self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+        self.addEventListener("install", () => self.skipWaiting());
+        self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
-    self.addEventListener("message", (ev) => {
-        if (!ev.data) {
-            return;
-        } else if (ev.data.type === "deregister") {
-            self.registration
-                .unregister()
-                .then(() => {
-                    return self.clients.matchAll();
-                })
-                .then(clients => {
-                    clients.forEach((client) => client.navigate(client.url));
-                });
-        } else if (ev.data.type === "coepCredentialless") {
-            coepCredentialless = ev.data.value;
-        }
-    });
-
-    const fetchListener = serviceWorkerFetchListener();
-
-    self.addEventListener("fetch", function (event) {
-        if (fetchListener(event)) {
-            // This event has been handled by sync-message
-            return;
-        }
-
-        const r = event.request;
-        if (r.cache === "only-if-cached" && r.mode !== "same-origin") {
-            return;
-        }
-
-        const request = (coepCredentialless && r.mode === "no-cors")
-            ? new Request(r, {
-                credentials: "omit",
-            })
-            : r;
-        event.respondWith(
-            fetch(request)
-                .then((response) => {
-                    if (response.status === 0) {
-                        return response;
-                    }
-
-                    const newHeaders = new Headers(response.headers);
-                    newHeaders.set("Cross-Origin-Embedder-Policy",
-                        coepCredentialless ? "credentialless" : "require-corp"
-                    );
-                    if (!coepCredentialless) {
-                        newHeaders.set("Cross-Origin-Resource-Policy", "cross-origin");
-                    }
-                    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-
-                    return new Response(response.body, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: newHeaders,
+        self.addEventListener("message", (ev) => {
+            if (!ev.data) {
+                return;
+            } else if (ev.data.type === "deregister") {
+                self.registration
+                    .unregister()
+                    .then(() => {
+                        return self.clients.matchAll();
+                    })
+                    .then(clients => {
+                        clients.forEach((client) => client.navigate(client.url));
                     });
+            } else if (ev.data.type === "coepCredentialless") {
+                coepCredentialless = ev.data.value;
+            }
+        });
+
+        const fetchListener = serviceWorkerFetchListener();
+
+        self.addEventListener("fetch", function (event) {
+            if (fetchListener(event)) {
+                // This event has been handled by sync-message
+                return;
+            }
+
+            const r = event.request;
+            if (r.cache === "only-if-cached" && r.mode !== "same-origin") {
+                return;
+            }
+
+            const request = (coepCredentialless && r.mode === "no-cors")
+                ? new Request(r, {
+                    credentials: "omit",
                 })
-                .catch((e) => console.error(e))
-        );
-    });
-    console.log('load ok');
+                : r;
+            event.respondWith(
+                fetch(request)
+                    .then((response) => {
+                        if (response.status === 0) {
+                            return response;
+                        }
+
+                        const newHeaders = new Headers(response.headers);
+                        newHeaders.set("Cross-Origin-Embedder-Policy",
+                            coepCredentialless ? "credentialless" : "require-corp"
+                        );
+                        if (!coepCredentialless) {
+                            newHeaders.set("Cross-Origin-Resource-Policy", "cross-origin");
+                        }
+                        newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+                        return new Response(response.body, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            headers: newHeaders,
+                        });
+                    })
+                    .catch((e) => console.error(e))
+            );
+        });
+        console.log('load ok');
     } catch (exception) {
         console.trace(exception);
     }
@@ -135,7 +136,7 @@ if (typeof window === 'undefined') {
             return;
         }
 
-        n.serviceWorker.register(window.document.getElementById('serviceworker').src).then(
+        n.serviceWorker.register(window.document.getElementById('serviceworker').src, { type: "module" }).then(
             (registration) => {
                 !coi.quiet && console.log("COOP/COEP Service Worker registered", registration.scope);
 
