@@ -1,4 +1,5 @@
 /*! coi-serviceworker v0.1.7 - Guido Zuidhof and contributors, licensed under MIT. Patched for HeartCollective */
+// Won't work in Firefox: https://bugzil.la/1360870
 import { serviceWorkerFetchListener, isServiceWorkerRequest } from "./vendor/sync-message/index.js";
 
 let coepCredentialless = false;
