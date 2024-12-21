@@ -1,5 +1,6 @@
 use hc_workspace;
 
-pub fn main() {
-    hc_workspace::start();
+#[tokio::main]
+pub async fn main() {
+    hc_workspace::start().await;
 }

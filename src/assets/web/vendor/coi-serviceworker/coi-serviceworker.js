@@ -69,7 +69,6 @@ if (typeof window === 'undefined') {
                     .catch((e) => console.error(e))
             );
         });
-        console.log('load ok');
     } catch (exception) {
         console.trace(exception);
     }

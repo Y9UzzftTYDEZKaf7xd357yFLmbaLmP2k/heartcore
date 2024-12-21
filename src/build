@@ -50,15 +50,15 @@ done
 
 #echo 'async function run() {' >> built/web/packages.js
 
-#for i in "${packages[@]}"
-#do
+for i in "${packages[@]}"
+do
 
     # NOTE this is debug build for now
-#    [[ -f "$i/target/debug/$i" ]] && cp "$i/target/debug/$i" built/linux-cli/
+    [[ -f "$i/target/debug/$i" ]] && cp "$i/target/debug/$i" built/linux-cli/
 
 #    echo "await $i.default();" >> built/web/packages.js
 
-#done
+done
 
 #echo 'hc_workspace.start();' >> built/web/packages.js
 #echo '}' >> built/web/packages.js

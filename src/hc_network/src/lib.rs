@@ -7,6 +7,7 @@ use std::time::Duration;
 use futures_timer::Delay;
 use futures::select;
 use futures::FutureExt;
+use std::fs;
 
 pub fn get_asset(key: &str) -> Option<Vec<u8>> {
     if key.contains("/./") || key.contains("/../") || key.starts_with("./") || key.starts_with("../") {
@@ -40,6 +41,10 @@ pub fn get_url(key: &str) -> Option<Vec<u8>> {
     /*
     #[cfg(not(target_family = "wasm"))]
     return get_url_native(key); */
+}
+
+pub fn start_signaling_server() {
+    // TODO
 }
 
 
@@ -252,6 +257,7 @@ SOFTWARE.
     futures::pin_mut!(timeout);
 
     loop {
+        // log_string("polling".to_string());
         // Handle any new peers
         for (peer, state) in socket.update_peers() {
             match state {
