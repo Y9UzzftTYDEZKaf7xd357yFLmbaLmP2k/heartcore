@@ -6,4 +6,4 @@ set -euo pipefail
 
 pushd built/linux-cli || exit 1
 
-./hc_workspace
+./hc_workspace "$@"

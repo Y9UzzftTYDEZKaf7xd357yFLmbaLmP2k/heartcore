@@ -10,43 +10,62 @@ use hc_utilities::*;
 use std::collections::HashMap;
 use std::env;
 use wasm_bindgen::prelude::*;
+use tokio::task;
 
 #[wasm_bindgen]
 pub async fn start() {
     console_error_panic_hook::set_once();
+    let _ = setup_logger().unwrap();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 {
-        let arg: &str = args[1].as_str();
+
+    if args.len() > 2 {
+        let arg: &str = args[3].as_str();
+        let channel_name: String = args[1].clone();
+        log("Subprocess started");
         if arg == "signaling" {
             start_signaling_server();
         }
         if arg == "listen" {
-            let message =listen_for_message();
-            print!("Received message: {:?}", message);
+            // let message = listen_for_message(channel_name);
+            // print!("Received message: {:?}", message);
+        }
+        if arg == "renderer" {
+            log("Renderer started");
+            std::thread::sleep_ms(1000);
+            let message = task::spawn_blocking(move || listen_for_message(channel_name.as_str()));
+            // let message = task::spawn(async || { listen_for_message(channel_name.as_str()) });
+            /*send_message(channel_name.as_str(), json_encode!({
+                "type": "ready",
+            }).as_str());*/
+        log("ok");
         }
         return;
+    } else {
+        let process_manager = start_process_manager();
+        // let renderer_manager = start_process(process_manager, "hc_renderer");
+        let renderer_manager = start_process(process_manager, vec!["renderer".to_string()]).await;
+        let renderer_pid_and_channel = renderer_manager
+            .get(&(renderer_manager.len() as u32 - 1))
+            .unwrap()
+            .clone();
+
+        let renderer_channel_name = renderer_pid_and_channel.keys().next();
+        // let signaling_manager = start_process(renderer_manager, "hc_workspace", Vec::new());
+        // send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
+
+        show_view("console", "root");
+        // log(renderer_channel_name.clone().unwrap().to_vec());
+        std::thread::sleep_ms(1000);
+
+        let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
+        // let doc = strtovec("0");
+        let doc_str = vectostr(doc);
+        print(strtovec(format!("Document: {}", doc_str).as_str()));
+        // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
+        // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));*/
+        data_channel_test().await;
     }
-    let process_manager = start_process_manager();
-    // let renderer_manager = start_process(process_manager, "hc_renderer");
-    let renderer_manager = start_process(process_manager, "hc_workspace");
-    let renderer_pid_and_channel = renderer_manager
-        .get(&(renderer_manager.len() as u32 - 1)).unwrap().clone();
-
-    let renderer_channel_name = renderer_pid_and_channel.keys().next();
-    let signaling_manager = start_process(renderer_manager, "hc_workspace");
-    send_message(renderer_channel_name.unwrap().to_vec(), strtovec("hello"));
-
-    show_view("console", "root");
-    log(renderer_channel_name.clone().unwrap().to_vec());
-
-    let doc = hc_network::get_asset("intro.html").expect("Could not load intro.html");
-    // let doc = strtovec("0");
-    let doc_str = vectostr(doc);
-    print(strtovec(format!("Document: {}", doc_str).as_str()));
-    // let pid = hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));
-    // hc_renderer::start(hc_formats::convert_from(doc, strtovec("html")));*/
-    data_channel_test().await;
 }
 
 pub fn start_signaling_server() {}
