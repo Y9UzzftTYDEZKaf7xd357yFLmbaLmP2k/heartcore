@@ -293,7 +293,6 @@ SOFTWARE.
     }
 }
 
-#[wasm_bindgen]
 pub async fn data_channel_test() {
     data_channel_inner().await;
 }

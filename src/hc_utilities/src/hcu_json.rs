@@ -1,15 +1,22 @@
-use core::panic;
+use crate::log;
+use core::fmt::{Display, Formatter};
+use hifijson::token::Lex;
+use hifijson::{str, SliceLexer};
 use jaq_core::{load, Ctx, RcIter};
 use jaq_json::Val;
 use load::{Arena, File, Loader};
+pub use serde_json as hc_utilities_serde_json;
+pub use serde_json::json as hc_utilities_serde_json_json;
+use std::error::Error;
 use std::fmt;
-use core::fmt::{Display, Formatter};
+use thiserror::Error;
 
+// Equivalent to json_encode
 #[macro_export]
-macro_rules! json_encode {
-    ($x:expr) => {
+macro_rules! json {
+    ($($json:tt)+) => {
         // The $crate prefix is used to refer to the current crate, so that the macro can be used in other crates.
-        $crate::hc_utilities_serde_json::to_string(&$crate::hc_utilities_serde_json_json!($x)).unwrap()
+        $crate::hc_utilities_serde_json::to_string(&$crate::hc_utilities_serde_json_json!($($json)+)).unwrap()
     };
 }
 
@@ -41,8 +48,13 @@ macro_rules! json_encode {
     DEALINGS IN THE SOFTWARE.
 */
 
-pub fn jq(query: &str, input: &str) -> String {
+#[derive(Error, Debug)]
+#[error("Jaq JSON error")] // Formats the error message - but I haven't implemented it properly
+enum JaqError {
+    Parse(String),
+}
 
+pub fn jq(query: &str, input: &str) -> Result<String, Box<dyn Error>> {
     let program = File {
         code: query,
         path: (),
@@ -60,7 +72,12 @@ pub fn jq(query: &str, input: &str) -> String {
 
     let inputs = RcIter::new(core::iter::empty());
 
-    let mut out = filter.run((Ctx::new([], &inputs), Val::from(input.to_string())));
+    let slice = input.as_bytes();
+    let mut lexer = SliceLexer::new(slice);
+    let err = |e| JaqError::Parse(format!("{e} parsing JSON"));
+    let parsed = lexer.exactly_one(Val::parse).map_err(err)?;
+
+    let mut out = filter.run((Ctx::new([], &inputs), parsed));
 
     let cli = Cli {
         compact_output: false,
@@ -73,35 +90,42 @@ pub fn jq(query: &str, input: &str) -> String {
         tab: false,
         indent: 2,
     };
-    let mut result;
-    result = "".to_string();
-    while let Ok(val) = out.next().unwrap() {
+    let mut result = "".to_string();
 
-        let f = |f: &mut Formatter| {
-            let opts = PpOpts {
-                compact: cli.compact_output,
-                indent: if cli.tab {
-                    String::from("\t")
+    while let Some(val_result) = out.next() {
+        match val_result {
+            Ok(val) => {
+                let f = |f: &mut Formatter| {
+                    let opts = PpOpts {
+                        compact: cli.compact_output,
+                        indent: if cli.tab {
+                            String::from("\t")
+                        } else {
+                            " ".repeat(cli.indent)
+                        },
+                        sort_keys: cli.sort_keys,
+                    };
+                    fmt_val(f, &opts, 0, &val)
+                };
+                if let Val::Str(s) = &val {
+                    if cli.raw_output || cli.join_output {
+                        result = format!("{}{}", result, s);
+                    } else {
+                        result = format!("{}{}", result, FormatterFn(f));
+                    }
                 } else {
-                    " ".repeat(cli.indent)
-                },
-                sort_keys: cli.sort_keys,
-            };
-            fmt_val(f, &opts, 0, &val)
-        };
-        if let Val::Str(s) = &val {
-            if cli.raw_output || cli.join_output {
-                result = format!("{}{}", result, s);
-            } else {
-                result = format!("{}{}", result, FormatterFn(f));
+                    result = format!("{}{}", result, FormatterFn(f));
+                }
+                return Ok(result);
             }
-        } else {
-            result = format!("{}{}", result, FormatterFn(f));
+            Err(e) => {
+                log(format!("Error: {:?}", e).as_str());
+                return Err(format!("Error: {:?}", e).as_str().into());
+            }
         }
-        return result;
     }
 
-    panic!("Error formatting json");
+    return Err("Could not parse JSON".into());
 }
 
 pub struct Cli {

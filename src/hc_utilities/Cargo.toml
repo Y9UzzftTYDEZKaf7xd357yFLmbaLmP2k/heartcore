@@ -14,12 +14,15 @@ log = "0.4"
 fern = "0.7"
 humantime = "2.1.0"
 console_log = "1.0.0"
+tokio = { version = "1.43.0", features = ["rt"] }
+# JSON things
 jaq-core = "2.1"
 jaq-std = "2.1"
-jaq-json = "1.1"
-tokio = { version = "1.43.0", features = ["rt"] }
+jaq-json = { version = "1.1", features = [ "parse" ] }
 itertools = "0.14.0"
 yansi = "1.0.1"
+hifijson = "0.2"
+thiserror = "2.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 duct = "0.13"

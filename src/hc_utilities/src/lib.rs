@@ -5,20 +5,16 @@ cfg_if! {
 use std::process::{self, Command, Stdio};
     }
 }
+pub use crate::hcu_json::*;
 use fern::FormatCallback;
 use humantime;
 pub use log::debug;
 pub use log::info;
-pub use serde_json as hc_utilities_serde_json;
-pub use serde_json::json as hc_utilities_serde_json_json;
 use std::collections::HashMap;
 use std::env;
 use std::fmt;
 use std::time::SystemTime;
-use tokio::runtime::Runtime;
-use tokio::task;
 use wasm_bindgen::prelude::*;
-pub use crate::hcu_json::*;
 
 // hcu = Heart Collective Utilities
 pub mod hcu_json;
@@ -72,6 +68,17 @@ pub fn in_array(needle: Vec<u8>, map: HashMap<u32, Vec<u8>>) -> bool {
     return map.iter().any(|(_, val)| *val == needle);
 }
 
+pub fn get_service_name() -> String {
+    let args: Vec<String> = env::args().collect();
+    let arg1;
+    if args.len() > 1 {
+        arg1 = args[1].clone();
+    } else {
+        arg1 = "".to_string();
+    }
+    return arg1;
+}
+
 pub fn start_process_manager() -> HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>, Vec<u8>>>> {
     HashMap::from([])
 }
@@ -84,13 +91,7 @@ pub async fn start_process(
     let _process = server_name.to_string();
     let next_id = manager.len().to_string();
     let channel_name = format!("com.heartcollective.workspace{}", next_id);
-    let arg1: String;
-    if args.len() > 0 {
-        let arg1_orig = args[0].as_str();
-        arg1 = arg1_orig.to_string();
-    } else {
-        arg1 = "".to_string();
-    }
+
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
             // just use the process name as the "PID" I guess
@@ -107,10 +108,10 @@ pub async fn start_process(
                 .stderr(Stdio::inherit())
                 .spawn()
                 .expect("failed to execute server process").id().to_string();
-            let ready = listen_for_message(channel_name.as_str()).await.unwrap();
-            debug!("Subprocess reply: {} {}", jq(".type", ready.as_str()), ready.as_str());
-            if jq(".type", ready.as_str()) == "ready" {
-                debug!("Subprocess ready: {} {}", channel_name, arg1);
+            let ready = listen_for_message(channel_name.as_str()).await;
+            debug!("Subprocess reply: {} {}", jq(".type", ready.as_str()).unwrap(), ready.as_str());
+            if jq(".type", ready.as_str()).unwrap() == "ready" {
+                debug!("Subprocess ready: {} {}", channel_name, get_service_name());
             }
 
             let message = "hello from parent".to_string();
@@ -145,12 +146,11 @@ pub fn send_message(channel_name: &str, message: &str) {
     }
 }
 
-pub fn listen_for_message(channel_name: &str) -> tokio::task::JoinHandle<String> {
-    // Blocks until it's ready to receive messages, then waits asynchronously for a message
+pub fn wait_for_message(channel_name: &str) -> String {
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
             // TODO
-            return task::spawn(async move { return "".to_string(); });
+            return "".to_string();
         } else {
             // Join the bus
             let bus = format!("com.heartcollective.{}", channel_name);
@@ -159,23 +159,24 @@ pub fn listen_for_message(channel_name: &str) -> tokio::task::JoinHandle<String>
 
             log(format!("Listening for message on channel {}", channel_name).as_str());
 
-            return task::spawn(async move {
-                while let Ok(message) = receiver.recv(None) {
-                log(format!("Received message: {}", message.payload.as_str()).as_str());
-                    return message.payload;
-                }
+            if get_service_name() != "" {
+                send_message(channel_name, json!({
+                    "type": "ready",
+                }).as_str());
+            }
 
-                panic!("Failed to receive message");
-            });
+            while let Ok(message) = receiver.recv(None) {
+                log(format!("Received message: {}", message.payload.as_str()).as_str());
+                return message.payload;
+            };
         }
     }
+
+    panic!("Failed to receive message");
 }
 
-pub fn wait_for_message(channel_name: &str) -> String {
-    let rt = Runtime::new().unwrap();
-
-    let future = listen_for_message(channel_name);
-    return rt.block_on(future).expect("Failed to receive message");
+pub async fn listen_for_message(channel_name: &str) -> String {
+    return wait_for_message(channel_name);
 }
 
 pub fn setup_logger() -> Result<(), fern::InitError> {
@@ -274,17 +275,17 @@ pub fn call_wasm(method: &str, args: String) -> String {
 }
 
 pub fn print_js(string: &str) {
-    call_wasm("print_js", json_encode!([string]));
+    call_wasm("print_js", json!([string]));
 }
 
 pub fn log_js(string: &str) {
-    call_wasm("log_js", json_encode!([string]));
+    call_wasm("log_js", json!([string]));
 }
 
 pub fn get_path_js(url: &str) -> String {
-    return call_wasm("get_path", json_encode!([url]));
+    return call_wasm("get_path", json!([url]));
 }
 
 pub fn show_view_js(view: &str, parent: &str) {
-    call_wasm("showView", json_encode!([view, parent]));
+    call_wasm("showView", json!([view, parent]));
 }

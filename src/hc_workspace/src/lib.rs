@@ -1,12 +1,12 @@
 extern crate console_error_panic_hook;
+use cfg_if::cfg_if;
+use futures_util::future::FutureExt;
 use hc_formats;
 use hc_io::*;
 use hc_network::{self, data_channel_test};
-use cfg_if::cfg_if;
 use hc_utilities::*;
 use std::env;
 use wasm_bindgen::prelude::*;
-use tokio::task;
 
 #[wasm_bindgen]
 pub async fn start() {
@@ -16,27 +16,22 @@ pub async fn start() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 2 {
-        let arg: &str = args[3].as_str();
+        let service: &str = args[3].as_str();
         let channel_name: String = args[1].clone();
         log("Subprocess started");
-        if arg == "signaling" {
+
+        if service == "signaling" {
             start_signaling_server();
+            return;
         }
-        if arg == "listen" {
-            // let message = listen_for_message(channel_name);
-            // print!("Received message: {:?}", message);
+        loop {
+            let message = listen_for_message(channel_name.as_str()).await;
+            log(format!("Received message: {}", message.as_str()).as_str());
+
+            if service == "renderer" {
+                log("Renderer started");
+            }
         }
-        if arg == "renderer" {
-            log("Renderer started");
-            std::thread::sleep_ms(1000);
-            let message = task::spawn_blocking(move || listen_for_message(channel_name.as_str()));
-            // let message = task::spawn(async || { listen_for_message(channel_name.as_str()) });
-            /*send_message(channel_name.as_str(), json_encode!({
-                "type": "ready",
-            }).as_str());*/
-        log("ok");
-        }
-        return;
     } else {
         let process_manager = start_process_manager();
         // let renderer_manager = start_process(process_manager, "hc_renderer");
