@@ -1,6 +1,4 @@
-use std::fs;
 use hc_utilities::*;
-use wasm_bindgen::prelude::*;
 
 pub fn put(key: Vec<u8>, value: Vec<u8>) {
     println!(

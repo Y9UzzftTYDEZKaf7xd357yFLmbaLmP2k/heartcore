@@ -1,5 +1,4 @@
 use cfg_if::cfg_if;
-use hc_network;
 use hc_utilities::*;
 use wasm_bindgen::prelude::*;
 

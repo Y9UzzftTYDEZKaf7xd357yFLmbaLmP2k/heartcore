@@ -1,6 +1,4 @@
 
-use wasm_bindgen::prelude::*;
-
 struct Document {
     data: Vec<u8>,
 }

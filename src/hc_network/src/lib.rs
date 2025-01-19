@@ -1,6 +1,5 @@
 use cfg_if::cfg_if;
 use hc_utilities::*;
-use wasm_bindgen::prelude::*;
 use matchbox_socket::WebRtcSocket;
 use matchbox_socket::PeerState;
 use std::time::Duration;
@@ -256,26 +255,28 @@ SOFTWARE.
     let timeout = Delay::new(Duration::from_millis(100));
     futures::pin_mut!(timeout);
 
+    const CHANNEL_ID: usize = 0;
+
     loop {
         // log_string("polling".to_string());
         // Handle any new peers
         for (peer, state) in socket.update_peers() {
             match state {
                 PeerState::Connected => {
-                    log_string("Peer joined: {peer}".to_string());
+                    info!("Peer joined: {peer}");
                     let packet = "hello friend!".as_bytes().to_vec().into_boxed_slice();
-                    socket.send(packet, peer);
+                    socket.channel_mut(CHANNEL_ID).send(packet, peer);
                 }
                 PeerState::Disconnected => {
-                    log_string("Peer left: {peer}".to_string());
+                    info!("Peer left: {peer}");
                 }
             }
         }
 
         // Accept any messages incoming
-        for (peer, packet) in socket.receive() {
+        for (peer, packet) in socket.channel_mut(CHANNEL_ID).receive() {
             let message = String::from_utf8_lossy(&packet);
-            log_string("Message from {peer}: {message:?}".to_string());
+            info!("Message from {peer}: {message:?}");
         }
 
         select! {

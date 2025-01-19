@@ -1,35 +1,27 @@
 use cfg_if::cfg_if;
-use core::{error, panic};
-use std::sync::mpsc::channel;
+use core::panic;
 cfg_if! {
     if #[cfg(not(target_family = "wasm"))] {
-use nix::sys::stat;
-use nix::unistd;
-use std::io::BufRead;
-use std::path::Path;
 use std::process::{self, Command, Stdio};
     }
 }
-use console_log;
 use fern::FormatCallback;
 use humantime;
-use jaq_core::{load, Compiler, Ctx, Error, FilterT, RcIter};
-use jaq_json::Val;
-use load::{Arena, File, Loader};
-use log::debug;
+pub use log::debug;
+pub use log::info;
 pub use serde_json as hc_utilities_serde_json;
 pub use serde_json::json as hc_utilities_serde_json_json;
-use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::env;
-use std::env::temp_dir;
 use std::fmt;
-use std::time::Duration;
 use std::time::SystemTime;
 use tokio::runtime::Runtime;
 use tokio::task;
 use wasm_bindgen::prelude::*;
-use itertools::join;
+pub use crate::hcu_json::*;
+
+// hcu = Heart Collective Utilities
+pub mod hcu_json;
 
 pub fn strtovec(s: &str) -> Vec<u8> {
     return s.as_bytes().to_owned();
@@ -37,14 +29,6 @@ pub fn strtovec(s: &str) -> Vec<u8> {
 
 pub fn vectostr(v: Vec<u8>) -> String {
     return String::from_utf8_lossy(&v.clone()).to_string();
-}
-
-#[macro_export]
-macro_rules! json_encode {
-    ($x:expr) => {
-        // The $crate prefix is used to refer to the current crate, so that the macro can be used in other crates.
-        $crate::hc_utilities_serde_json::to_string(&$crate::hc_utilities_serde_json_json!($x)).unwrap()
-    };
 }
 
 // edited from https://stackoverflow.com/a/59401721
@@ -92,35 +76,12 @@ pub fn start_process_manager() -> HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>,
     HashMap::from([])
 }
 
-pub fn jq(query: &str, input: &str) -> String {
-    let program = File {
-        code: ".[]",
-        path: (),
-    };
-
-    let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
-    let arena = Arena::default();
-
-    let modules = loader.load(&arena, program).unwrap();
-
-    let filter = jaq_core::Compiler::default()
-        .with_funs(jaq_std::funs().chain(jaq_json::funs()))
-        .compile(modules)
-        .unwrap();
-
-    let inputs = RcIter::new(core::iter::empty());
-
-    let mut out = filter.run((Ctx::new([], &inputs), Val::from(input)));
-
-    return join(out, "\n");
-}
-
 pub async fn start_process(
     mut manager: HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>, Vec<u8>>>>,
     args: Vec<String>,
 ) -> HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>, Vec<u8>>>> {
     let server_name = "hc_workspace";
-    let process = server_name.to_string();
+    let _process = server_name.to_string();
     let next_id = manager.len().to_string();
     let channel_name = format!("com.heartcollective.workspace{}", next_id);
     let arg1: String;
@@ -136,17 +97,18 @@ pub async fn start_process(
         } else {
             let mut path = env::current_exe().expect("failed to get current executable path");
             path.pop();
-            let mut newArgs = vec![channel_name.to_string(), next_id];
-            newArgs.extend(args);
+            let mut new_args = vec![channel_name.to_string(), next_id];
+            new_args.extend(args);
             path.push(server_name);
-            let process = Command::new(path.clone())
-                .args(newArgs)
+            let _process = Command::new(path.clone())
+                .args(new_args)
                 .stdin(Stdio::null())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .spawn()
                 .expect("failed to execute server process").id().to_string();
             let ready = listen_for_message(channel_name.as_str()).await.unwrap();
+            debug!("Subprocess reply: {} {}", jq(".type", ready.as_str()), ready.as_str());
             if jq(".type", ready.as_str()) == "ready" {
                 debug!("Subprocess ready: {} {}", channel_name, arg1);
             }
@@ -157,7 +119,7 @@ pub async fn start_process(
         }
     }
 
-    let record = HashMap::from([(channel_name.into_bytes(), process.into_bytes())]);
+    let record = HashMap::from([(channel_name.into_bytes(), _process.into_bytes())]);
     let record = HashMap::from([(strtovec(server_name), record)]);
 
     manager.insert(manager.len() as u32, record);
@@ -172,10 +134,10 @@ pub fn send_message(channel_name: &str, message: &str) {
         } else {
             log(format!("Sending message to channel {}: {}", channel_name, message).as_str());
             let options = ipmb::Options::new(format!("com.heartcollective.{}", channel_name), ipmb::label!(channel_name), "");
-            let (sender, receiver) = ipmb::join::<String, String>(options, None).expect(format!("Failed to join bus com.heartcollective.{}", channel_name).as_str());
+            let (sender, _receiver) = ipmb::join::<String, String>(options, None).expect(format!("Failed to join bus com.heartcollective.{}", channel_name).as_str());
             let selector = ipmb::Selector::unicast(channel_name);
             // let selector = ipmb::Selector::multicast();
-            let mut message = ipmb::Message::new(selector, message.to_string());
+            let message = ipmb::Message::new(selector, message.to_string());
 
             // Send the message
             sender.send(message).expect("Send message failed");
@@ -193,9 +155,9 @@ pub fn listen_for_message(channel_name: &str) -> tokio::task::JoinHandle<String>
             // Join the bus
             let bus = format!("com.heartcollective.{}", channel_name);
             let options = ipmb::Options::new(bus, ipmb::label!(channel_name), "");
-            let (sender, mut receiver) = ipmb::join::<String, String>(options, None).expect(format!("Failed to join bus com.heartcollective.{}", channel_name).as_str());
+            let (_sender, mut receiver) = ipmb::join::<String, String>(options, None).expect(format!("Failed to join bus com.heartcollective.{}", channel_name).as_str());
 
-            log("Listening for message on bus {}");
+            log(format!("Listening for message on channel {}", channel_name).as_str());
 
             return task::spawn(async move {
                 while let Ok(message) = receiver.recv(None) {
