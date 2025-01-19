@@ -16,7 +16,9 @@ humantime = "2.1.0"
 console_log = "1.0.0"
 jaq-core = "2.1"
 jaq-std = "2.1"
+jaq-json = "1.1"
 tokio = { version = "1.43.0", features = ["rt"] }
+itertools = "0.14.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 duct = "0.13"

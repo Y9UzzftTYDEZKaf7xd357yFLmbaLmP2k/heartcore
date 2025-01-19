@@ -11,20 +11,25 @@ use std::process::{self, Command, Stdio};
     }
 }
 use console_log;
+use fern::FormatCallback;
 use humantime;
+use jaq_core::{load, Compiler, Ctx, Error, FilterT, RcIter};
+use jaq_json::Val;
+use load::{Arena, File, Loader};
+use log::debug;
 pub use serde_json as hc_utilities_serde_json;
 pub use serde_json::json as hc_utilities_serde_json_json;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::env;
 use std::env::temp_dir;
+use std::fmt;
 use std::time::Duration;
 use std::time::SystemTime;
-use wasm_bindgen::prelude::*;
-use fern::FormatCallback;
-use std::fmt;
-use log::debug;
-use tokio::task;
 use tokio::runtime::Runtime;
+use tokio::task;
+use wasm_bindgen::prelude::*;
+use itertools::join;
 
 pub fn strtovec(s: &str) -> Vec<u8> {
     return s.as_bytes().to_owned();
@@ -87,6 +92,29 @@ pub fn start_process_manager() -> HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>,
     HashMap::from([])
 }
 
+pub fn jq(query: &str, input: &str) -> String {
+    let program = File {
+        code: ".[]",
+        path: (),
+    };
+
+    let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
+    let arena = Arena::default();
+
+    let modules = loader.load(&arena, program).unwrap();
+
+    let filter = jaq_core::Compiler::default()
+        .with_funs(jaq_std::funs().chain(jaq_json::funs()))
+        .compile(modules)
+        .unwrap();
+
+    let inputs = RcIter::new(core::iter::empty());
+
+    let mut out = filter.run((Ctx::new([], &inputs), Val::from(input)));
+
+    return join(out, "\n");
+}
+
 pub async fn start_process(
     mut manager: HashMap<u32, HashMap<Vec<u8>, HashMap<Vec<u8>, Vec<u8>>>>,
     args: Vec<String>,
@@ -119,7 +147,7 @@ pub async fn start_process(
                 .spawn()
                 .expect("failed to execute server process").id().to_string();
             let ready = listen_for_message(channel_name.as_str()).await.unwrap();
-            if ready == "ready" {
+            if jq(".type", ready.as_str()) == "ready" {
                 debug!("Subprocess ready: {} {}", channel_name, arg1);
             }
 
@@ -183,7 +211,7 @@ pub fn listen_for_message(channel_name: &str) -> tokio::task::JoinHandle<String>
 
 pub fn wait_for_message(channel_name: &str) -> String {
     let rt = Runtime::new().unwrap();
-    
+
     let future = listen_for_message(channel_name);
     return rt.block_on(future).expect("Failed to receive message");
 }
