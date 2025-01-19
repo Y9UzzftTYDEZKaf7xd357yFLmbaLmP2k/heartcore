@@ -14,7 +14,7 @@ getrandom = { version = "0.2", features = ["js"] }
 ammonia = "4"
 
 [dependencies.uuid]
-version = "1.10.0"
+version = "1.12.0"
 features = [
     "v4",                # Lets you generate random UUIDs
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs

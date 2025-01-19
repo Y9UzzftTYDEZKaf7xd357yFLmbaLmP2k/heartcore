@@ -14,4 +14,5 @@ Please note: this is a hobby project provided "as is" (see the license for the f
 - Checking for unused dependencies: `cargo +nightly udeps`
 - Updating Rust: `rustup update`
 - Updating dependencies: `cargo update`
-- Updating dependencies past unstable version (requires `cargo install cargo-edit`): `cargo upgrade -i --dry-run`
+- Updating dependencies past unstable version (requires `cargo install cargo-edit`): `cargo upgrade -i --dry-run` or `cargo upgrade -i` to save them
+
